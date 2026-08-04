@@ -1,0 +1,190 @@
+schema_version: 1
+protocol_version: boolq-lora-inference-v1
+
+dataset:
+  id: google/boolq
+  revision: 35b264d03638db9f4ce671b711558bf7ff0f80d5
+  source_split: validation
+  expected_source_rows: 3270
+  canonical_source_sha256: c81b6520f1a51a8b96de45420b3d1f78184aee00373c77852132b297f2e567ef
+
+model:
+  id: Qwen/Qwen2.5-1.5B-Instruct
+  revision: 989aa7980e4cf806f80c7fef2b1adb7bc71aa306
+  tokenizer_id: Qwen/Qwen2.5-1.5B-Instruct
+  tokenizer_revision: 989aa7980e4cf806f80c7fef2b1adb7bc71aa306
+  tokenizer_class: Qwen2Tokenizer
+  base_model_class: Qwen2ForCausalLM
+  peft_model_class: PeftModelForCausalLM
+  base_parameter_count: 1543714304
+  total_parameter_count_with_adapter: 1552946688
+  dtype: bfloat16
+  device: cuda:0
+  trust_remote_code: false
+  use_safetensors: true
+  peft_adapters_required: true
+
+environment:
+  python: 3.12.13
+  platform: Linux-6.6.122+-x86_64-with-glibc2.35
+  gpu: NVIDIA A100-SXM4-80GB
+  gpu_vram_gib: 79.250732421875
+  compute_capability: [8, 0]
+  excluded_packages: [torchao]
+  package_versions:
+    accelerate: 1.14.0
+    datasets: 4.0.0
+    huggingface-hub: 1.23.0
+    numpy: 2.0.2
+    peft: 0.19.1
+    pyarrow: 18.1.0
+    pyyaml: 6.0.3
+    safetensors: 0.8.0
+    tokenizers: 0.22.2
+    torch: 2.11.0+cu128
+    transformers: 5.13.1
+
+input:
+  source_manifest_path: data/manifests/test.jsonl
+  source_manifest_sha256: 42a346cb58d0ef1530b5fb805cc798c0191a6f2884d2f1766a4d86d24817d588
+  source_manifest_ledger_path: data/manifests/artifact_hashes.json
+  source_manifest_ledger_sha256: 8916df7fd59606377a7701f9216179a3a521f4f0ccbfba3a1ea113017353e640
+  source_examples: 400
+  degradation_manifest_path: data/degradations/test.jsonl
+  degradation_manifest_sha256: 82c6285ee0c236c8b75d65632b1fda3e85f8e0c492f89aef877d06c17fa1255c
+  degradation_manifest_ledger_path: data/degradations/artifact_hashes.json
+  degradation_manifest_ledger_sha256: 5a6bce031837eaf76869f4ebefe15801dd0009df05fc125c0673c0c76773be9f
+  degradation_rows: 2400
+  condition_count: 6
+  require_all_transformations_ok: true
+  require_all_runtime_status_ok: true
+  labels_available_to_model_inference: false
+
+adapters:
+  full_seed_1:
+    training_seed: 20260811
+    checkpoint_path: outputs/checkpoints/lora/full_seed_1
+    checkpoint_ledger_sha256: f2ebd670a234cf3b25f5bf0478415c37eda71c87bf7d6e122cddc388662386ce
+    adapter_weights_sha256: 3bcd570b3ec3616ecaf3b7cc874a81fff84b3899334028d4d8179a367aea35b4
+    raw_adapter_config_sha256: 5d1a77cf8988878fca5c8bbaab63a883090735171a017ce4d4bfc107bf56cd7e
+    semantic_adapter_config_sha256: 656299a1d89a86c159ae19723177d765b47682d3348f8c62cbb71f01c88b3e50
+  full_seed_2:
+    training_seed: 20260812
+    checkpoint_path: outputs/checkpoints/lora/full_seed_2
+    checkpoint_ledger_sha256: 2d274d54736f184811ab3b25cde50d33ded5141159f1ed7ee473d7aff243f560
+    adapter_weights_sha256: 0e393dc7cddf1f7183c17af5995d519de016f46d6151c5465f81845bb060e691
+    raw_adapter_config_sha256: 70ebd6e21bb8eea75361e127be74949d50498bb5a92362a845b1d1c5a83acc4d
+    semantic_adapter_config_sha256: 656299a1d89a86c159ae19723177d765b47682d3348f8c62cbb71f01c88b3e50
+  full_seed_3:
+    training_seed: 20260813
+    checkpoint_path: outputs/checkpoints/lora/full_seed_3
+    checkpoint_ledger_sha256: 5abefd49de147d827bca6ecc031772a92d9fae7e56745d26f6cd2ec9bb16d151
+    adapter_weights_sha256: a665864d76931f59650dec517ce66632233117685b690bde17c6138911dae46c
+    raw_adapter_config_sha256: e5851d2ea2b07d9eb9c3b41090c9dccde769f1f4f4ace06a43e9de46a2654147
+    semantic_adapter_config_sha256: 656299a1d89a86c159ae19723177d765b47682d3348f8c62cbb71f01c88b3e50
+
+prompt:
+  renderer_version: qwen-chat-boolq-confidence-v1
+  maximum_prompt_tokens: 1024
+  truncation_allowed: false
+  padding_side: left
+  add_special_tokens: false
+
+classification:
+  class_order: ["Yes", "No"]
+  continuations: {"Yes": " Yes", "No": " No"}
+  token_ids: {"Yes": 7414, "No": 2308}
+  contextual_single_token_validation: true
+  binary_probability_definition: softmax-over-yes-no-logits
+  record_full_vocabulary_yes_no_mass: true
+  argmax_tie_policy: "Yes"
+
+forward:
+  use_cache: false
+  return_dict: true
+  output_hidden_states: false
+  output_attentions: false
+  logits_to_keep: 1
+  attention_derived_position_ids: true
+  require_finite_full_vocabulary_logits: true
+
+inference:
+  seed: 20260803
+  batch_size: 4
+  num_workers: 0
+  pin_memory: true
+  shuffle: false
+  model_mode: eval
+  autograd_enabled: false
+  generation:
+    do_sample: false
+    num_beams: 1
+    max_new_tokens: 24
+    use_cache: true
+    eos_token_ids: [151645, 151643]
+    pad_token_id: 151643
+    repetition_penalty: 1.1
+    repetition_penalty_scope: generated-continuation-only
+    inherited_repetition_penalty_override: 1.0
+    skip_special_tokens_on_decode: true
+    clean_up_tokenization_spaces: false
+    parser: exact-continuation-v1
+    accepted_form: " Yes| No\\nConfidence: N"
+    allow_one_terminal_newline: true
+    reject_max_new_tokens_reached: true
+    persist_generated_continuation: true
+    retain_invalid_parse_rows: true
+
+stages:
+  smoke12:
+    base_inputs: 2
+    rows: 12
+    selection: first-two-label-blind-input-ids
+  full:
+    base_inputs: 400
+    rows: 2400
+    selection: all-label-blind-inputs
+
+output:
+  root: outputs/predictions/lora
+  run_manifest_root: outputs/manifests/lora_inference
+  batch_shards: true
+  batch_shard_directory: batches
+  resume_policy: verify-identity-row-hashes-and-order
+  atomic_writes: true
+  publish_completion_marker_last: true
+  refuse_differing_existing_artifacts: true
+  include_generated_continuation: true
+  include_ground_truth: false
+  include_correctness: false
+  include_question: false
+  include_passage: false
+  include_prompt: false
+  canonical_json: true
+  jsonl_terminal_newline: true
+
+prerequisites:
+  configs/data.yaml: 412fd6da74212e071159463e104329efefbc8fbe6b853c29c825e3ab37cb64ac
+  configs/degradations.yaml: 303238ae02025c9e5cb59bbd061949b6798f5fde8936a1f0604d15f0552cf2e3
+  configs/baseline.yaml: 021e8dcdb7e316d83fa9528aea5d21b427a80161c398c86d6bf26ae834c43c85
+  configs/lora.yaml: 90e1f7b14c97603caa5d2d50620afbba7bb56f5aa17a0a5bc8f23f7b6d513c69
+  src/llm_confidence_uq/degradations.py: 8d71c5305d04d888b68181df9d43e30e76ea4c6f6f56494a65e53697d8544337
+  src/llm_confidence_uq/inference.py: e6488170f45783d701676af0947c63a5f8d4f5879d23d4fcebabbe1b2807ab4a
+  scripts/prepare_degradations.py: aee819f1727a9113a4b2df2c8a946747dd90565b2659bd3dcbf635a4b3d13e86
+  scripts/run_baseline.py: a2b193e16c0508dd72df8a881b609c852760fe54e57cb8c249d230b0a3709570
+  data/manifests/artifact_hashes.json: 8916df7fd59606377a7701f9216179a3a521f4f0ccbfba3a1ea113017353e640
+  data/manifests/test.jsonl: 42a346cb58d0ef1530b5fb805cc798c0191a6f2884d2f1766a4d86d24817d588
+  data/degradations/artifact_hashes.json: 5a6bce031837eaf76869f4ebefe15801dd0009df05fc125c0673c0c76773be9f
+  data/degradations/test.jsonl: 82c6285ee0c236c8b75d65632b1fda3e85f8e0c492f89aef877d06c17fa1255c
+
+implementation:
+  src/llm_confidence_uq/adapter_inference.py: 705d3ae58b445da3a24b0dae48d6996cff2e5c06aeefa61b99424a7262a85389
+  scripts/run_lora_inference.py: 5a8f8f171a1d0cd28db6b8751d993745d770faed8e18fa39c129ebe1dc3510b5
+  tests/test_lora_inference.py: af6f2033b67037cf11d6a22aad9ab733646ea6f5e07b104dcaa3c21cab1b370f
+
+claim_boundaries:
+  label_isolation: Ground-truth labels are unavailable to model inference and absent from prediction rows.
+  adapter_identity: Every prediction is bound to one adapter stage, training seed, checkpoint ledger, weight digest and semantic configuration digest.
+  binary_probability: Yes/No confidence is normalized only across the two pinned answer-token logits; full-vocabulary mass is recorded separately.
+  expressed_confidence: Generated confidence is parsed exactly without repair, fallback or imputation.
+  scope: Independent LoRA-adapter predictions only; no calibration, aggregation, accuracy or ensemble-performance claim.

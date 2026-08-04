@@ -1,0 +1,57 @@
+schema_version: 1
+protocol_version: boolq-calibrated-test-evaluation-v1
+classes: ["Yes", "No"]
+
+test:
+  manifest_path: data/manifests/test.jsonl
+  manifest_sha256: 42a346cb58d0ef1530b5fb805cc798c0191a6f2884d2f1766a4d86d24817d588
+  inputs: 400
+  prediction_rows: 2400
+  research_split: test
+  source_split: validation
+  labels_available_during_inference: false
+  labels_joined_after_inference: true
+
+calibration:
+  fit_split: calibration
+  fit_source_split: train
+  fit_evidence_condition: original
+  apply_to_all_test_conditions: true
+  refit_on_test: false
+
+methods:
+  baseline:
+    predictions_path: outputs/predictions/baseline/full/predictions.jsonl
+    predictions_sha256: f0b16d335f44ccc6d34142a9ec4b87067637f99b27cdde5a65a3a9e784717860
+    temperature_path: outputs/calibration/temperature/baseline/temperature.json
+    temperature_sha256: b307b891c4a96999d1ab84a33bb2753a24dbac626024c2d6289ef3625905b31d
+  full_seed_1:
+    predictions_path: outputs/predictions/lora/full_seed_1/full/predictions.jsonl
+    predictions_sha256: fbbd4a56a4783e4bd79e8ac07bbf5ac9ebadedfc499f9bef1b7f0eb970cdb926
+    temperature_path: outputs/calibration/temperature/full_seed_1/temperature.json
+    temperature_sha256: b18e80d445ff6f2121a6d177b0b0e43addf9852acc66791b088d8dd1aa96e99f
+  full_seed_2:
+    predictions_path: outputs/predictions/lora/full_seed_2/full/predictions.jsonl
+    predictions_sha256: b99956d0a2d15bf5c3410fa6df5ea5773c276300fddbaaf0279384277b9d59b2
+    temperature_path: outputs/calibration/temperature/full_seed_2/temperature.json
+    temperature_sha256: edba06ba1cce30426a39cd72470ed491554cefd50aa5bf1a42fa0fb02cf2169e
+  full_seed_3:
+    predictions_path: outputs/predictions/lora/full_seed_3/full/predictions.jsonl
+    predictions_sha256: e87f680f236af678be8c6fd68d641e97e3067e82fa99672b540f1dab71164954
+    temperature_path: outputs/calibration/temperature/full_seed_3/temperature.json
+    temperature_sha256: 93e14eef5804001cc458eebe8e08720d9a603676be67bfa5846b819180b27dd8
+
+metrics:
+  ece_bins: 10
+  brier_definition: binary-yes-probability
+  error_detection_score: one-minus-selected-class-confidence
+  risk_coverage_tie_break: evaluation-id
+  expressed_confidence_invalid_policy: retain-missing-no-imputation
+
+implementation:
+  src/llm_confidence_uq/evaluation.py: ad8b58897fc4cefa5857dd63985f89f83680fc045be7300ac567c80188758c57
+  scripts/evaluate_predictions.py: 0cb0527e29921c751d184a4f6c703382e4b8ecda6084cfabb13a02f6312658d6
+
+output:
+  root: outputs/evaluation
+  run_manifest_root: outputs/manifests/evaluation

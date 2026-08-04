@@ -1,0 +1,168 @@
+schema_version: 1
+protocol_version: boolq-answer-token-lora-v1
+
+dataset:
+  id: google/boolq
+  revision: 35b264d03638db9f4ce671b711558bf7ff0f80d5
+  source_split: train
+  manifest_path: data/manifests/train.jsonl
+  manifest_sha256: 8427a69570e3457fcff5a5482c205117ced2f3c6f98ca225156aebf7283991c3
+  manifest_rows: 800
+  class_counts: {false: 301, true: 499}
+  selection_seed: 20260803
+  calibration_examples_used: 0
+  test_examples_used: 0
+
+model:
+  id: Qwen/Qwen2.5-1.5B-Instruct
+  revision: 989aa7980e4cf806f80c7fef2b1adb7bc71aa306
+  tokenizer_id: Qwen/Qwen2.5-1.5B-Instruct
+  tokenizer_revision: 989aa7980e4cf806f80c7fef2b1adb7bc71aa306
+  tokenizer_class: Qwen2Tokenizer
+  model_class: Qwen2ForCausalLM
+  base_parameter_count: 1543714304
+  dtype: bfloat16
+  device: cuda:0
+  trust_remote_code: false
+  use_safetensors: true
+  quantization: none
+
+environment:
+  python: 3.12.13
+  platform: Linux-6.6.122+-x86_64-with-glibc2.35
+  gpu: NVIDIA A100-SXM4-80GB
+  gpu_vram_gib: 79.250732421875
+  compute_capability: [8, 0]
+  pytorch_cuda_build: "12.8"
+  excluded_packages:
+    - torchao
+  package_versions:
+    accelerate: 1.14.0
+    datasets: 4.0.0
+    huggingface-hub: 1.23.0
+    numpy: 2.0.2
+    peft: 0.19.1
+    pyarrow: 18.1.0
+    pyyaml: 6.0.3
+    safetensors: 0.8.0
+    tokenizers: 0.22.2
+    torch: 2.11.0+cu128
+    transformers: 5.13.1
+
+objective:
+  name: full-vocabulary-next-token-cross-entropy
+  prompt_loss_weight: 0.0
+  answer_tokens_per_example: 1
+  numerical_confidence_targets_used: false
+  class_order: ["Yes", "No"]
+  class_continuations: {"Yes": " Yes", "No": " No"}
+  class_token_ids: {"Yes": 7414, "No": 2308}
+  maximum_prompt_tokens: 768
+  padding_side: left
+  truncation_allowed: false
+  logits_to_keep: 1
+  attention_derived_position_ids: true
+
+lora:
+  task_type: CAUSAL_LM
+  rank: 8
+  alpha: 16
+  dropout: 0.05
+  bias: none
+  initialization: default
+  use_rslora: false
+  target_modules:
+    - q_proj
+    - k_proj
+    - v_proj
+    - o_proj
+    - gate_proj
+    - up_proj
+    - down_proj
+  expected_target_module_instances: 196
+  expected_trainable_parameter_count: 9232384
+  expected_total_parameter_count_with_adapter: 1552946688
+
+optimization:
+  implementation: torch-explicit-loop-v1
+  trainer_abstraction_used: false
+  optimizer: torch.optim.AdamW
+  learning_rate: 0.0002
+  betas: [0.9, 0.999]
+  epsilon: 0.00000001
+  weight_decay: 0.01
+  batch_size: 4
+  gradient_accumulation_steps: 8
+  effective_batch_size: 32
+  maximum_gradient_norm: 1.0
+  scheduler: linear-warmup-cosine-decay-v1
+  full_epochs: 3
+  full_warmup_steps: 8
+  full_optimizer_steps: 75
+  num_workers: 0
+  pin_memory: true
+  use_cache: false
+  deterministic_algorithms: true
+  cublas_workspace_config: ":4096:8"
+  allow_tf32: false
+
+stages:
+  smoke32:
+    seed: 20260811
+    examples: 32
+    epochs: 1
+    warmup_steps: 0
+    optimizer_steps: 1
+  full_seed_1:
+    seed: 20260811
+    examples: 800
+    epochs: 3
+    warmup_steps: 8
+    optimizer_steps: 75
+  full_seed_2:
+    seed: 20260812
+    examples: 800
+    epochs: 3
+    warmup_steps: 8
+    optimizer_steps: 75
+  full_seed_3:
+    seed: 20260813
+    examples: 800
+    epochs: 3
+    warmup_steps: 8
+    optimizer_steps: 75
+
+checkpoint:
+  root: outputs/checkpoints/lora
+  run_manifest_root: outputs/manifests/lora
+  adapter_safe_serialization: true
+  save_embedding_layers: false
+  save_optimizer_state: true
+  atomic_directory_publish: true
+  refuse_differing_existing_artifacts: true
+  publish_completion_marker_last: true
+  reload_validation: true
+  reload_logit_atol: 0.00001
+  reload_logit_rtol: 0.0
+  persist_raw_prompt: false
+  persist_question: false
+  persist_passage: false
+
+prerequisites:
+  configs/data.yaml: 412fd6da74212e071159463e104329efefbc8fbe6b853c29c825e3ab37cb64ac
+  configs/degradations.yaml: 303238ae02025c9e5cb59bbd061949b6798f5fde8936a1f0604d15f0552cf2e3
+  configs/baseline.yaml: 021e8dcdb7e316d83fa9528aea5d21b427a80161c398c86d6bf26ae834c43c85
+  data/manifests/artifact_hashes.json: 8916df7fd59606377a7701f9216179a3a521f4f0ccbfba3a1ea113017353e640
+  data/manifests/train.jsonl: 8427a69570e3457fcff5a5482c205117ced2f3c6f98ca225156aebf7283991c3
+  scripts/prepare_degradations.py: aee819f1727a9113a4b2df2c8a946747dd90565b2659bd3dcbf635a4b3d13e86
+
+implementation:
+  src/llm_confidence_uq/training.py: 6cb07bb114eff334e5e46cc9d71922fd0906afdec17e83f723c04ea39ffc997d
+  scripts/train_lora.py: f059463f1b83ce3a372d5e9b2587e9727071afecc9279c55b9c514e209eb834e
+  tests/test_training.py: 8573b3596eea51419a91b37314555ca326eb199a15be58d738300a8970f5d73d
+
+claim_boundaries:
+  supervision: Only the ground-truth Yes/No answer token is supervised; no numerical confidence target is invented.
+  data_isolation: Only the frozen 800-example training split is used for optimization; calibration and test labels are excluded.
+  scope: Parameter-efficient LoRA adaptation of a frozen base model; this is not full-model fine-tuning.
+  reproducibility: Seeds and deterministic kernels limit variability within the pinned environment but do not guarantee cross-platform bitwise identity.

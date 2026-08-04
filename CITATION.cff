@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use this research artefact, please cite it using the metadata below."
+title: "Confidence Alignment and Uncertainty Quantification in LLMs Under Evidence Degradation"
+type: software
+version: "0.1.0"
+date-released: "2026-08-04"
+repository-code: "https://github.com/NaimurRahmanR/llm-confidence-uq"
+license: MIT
+authors:
+  - family-names: "Rahman"
+    given-names: "Naimur"
+    alias: "NaimurRahmanR"
+preferred-citation:
+  type: report
+  title: "Confidence Alignment and Uncertainty Quantification in LLMs Under Evidence Degradation"
+  year: 2026
+  authors:
+    - family-names: "Rahman"
+      given-names: "Naimur"
+      alias: "NaimurRahmanR"

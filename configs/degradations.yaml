@@ -1,0 +1,79 @@
+schema_version: 1
+
+input:
+  research_split: test
+  expected_examples: 400
+  manifest_path: data/manifests/test.jsonl
+  manifest_sha256: 42a346cb58d0ef1530b5fb805cc798c0191a6f2884d2f1766a4d86d24817d588
+
+tokenizer:
+  id: Qwen/Qwen2.5-1.5B-Instruct
+  revision: 989aa7980e4cf806f80c7fef2b1adb7bc71aa306
+  add_special_tokens_for_passage_operations: false
+  exact_decode_reencode_required: true
+
+protocol:
+  version: boolq-evidence-degradation-v1
+  seed: 20260803
+  condition_order:
+    - original
+    - lexical_evidence_removal
+    - prefix_truncation_50
+    - irrelevant_distractor
+    - lexical_contradiction
+    - no_passage
+  labels_available_to_transformations: false
+  persist_raw_text: false
+  preserve_not_applicable_rows: true
+  preserve_failed_rows: true
+  ordered_severity_claim_allowed: false
+
+lexical_proxy:
+  normalization: unicode-nfkc-casefold-unique-v1
+  algorithm: unique-token-jaccard-v1
+  token_pattern: '[^\W_]+(?:[''’][^\W_]+)*'
+  sentence_splitter: terminal-punctuation-or-newline-spans-v1
+  sentence_boundary_pattern: '[.!?](?:["'')\]]*)?(?=\s|$)|\n+'
+  tie_break: earliest-character-span-v1
+  zero_overlap_policy: select_earliest-and-flag
+
+prefix_truncation:
+  algorithm: token-prefix-half-ceiling-v1
+  ratio_numerator: 1
+  ratio_denominator: 2
+  rounding: ceiling
+
+distractor:
+  algorithm: minimum-jaccard-then-seeded-sha256-v1
+  maximum_fragment_tokens: 64
+  source_pool: selected_test_examples
+  transductive_input_use: true
+  exclude_target_example: true
+  exclude_identical_passage: true
+  uses_labels: false
+
+contradiction:
+  algorithm: unique-token-jaccard-v1
+  maximum_fragment_tokens: 64
+  template: 'However, it is not true that {fragment}'
+  uses_labels: false
+
+runtime:
+  renderer_version: qwen-chat-boolq-confidence-v1
+  maximum_sequence_tokens: 1024
+  truncation_allowed: false
+  overflow_policy: preserve_as_failed_row
+
+claim_boundary:
+  lexical_evidence_removal: >-
+    This is a deterministic lexical-overlap proxy and is not guaranteed to remove
+    semantically answer-bearing evidence.
+  irrelevant_distractor: >-
+    This uses other selected test inputs transductively. Minimum lexical overlap
+    does not prove semantic irrelevance.
+  lexical_contradiction: >-
+    The inserted statement contradicts a high-overlap sentence excerpt; it is not
+    guaranteed to contradict the ground-truth answer.
+  severity: >-
+    The conditions are categorical perturbations and must not be interpreted as a
+    monotonic degradation scale.

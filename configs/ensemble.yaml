@@ -1,0 +1,53 @@
+schema_version: 1
+protocol_version: boolq-three-lora-ensemble-v1
+
+implementation:
+  module_path: src/llm_confidence_uq/ensemble.py
+  module_sha256: e05e7132de430ed5619145165ea44a43af103fcee5a6d79b028395504f630fe3
+
+members:
+  full_seed_1:
+    method: full_seed_1
+    seed: 20260811
+    adapter_sha256: 3bcd570b3ec3616ecaf3b7cc874a81fff84b3899334028d4d8179a367aea35b4
+    evaluation_path: outputs/evaluation/full_seed_1/evaluations.jsonl
+    evaluation_sha256: 57f6df2685aca0913cbbf88e536355b6a12212abdb069f3f700c6dafe3563aa0
+  full_seed_2:
+    method: full_seed_2
+    seed: 20260812
+    adapter_sha256: 0e393dc7cddf1f7183c17af5995d519de016f46d6151c5465f81845bb060e691
+    evaluation_path: outputs/evaluation/full_seed_2/evaluations.jsonl
+    evaluation_sha256: b0e3aabb436b69a7604333bf6464dc826515e1dd571aa77d6bae04b94caf65c5
+  full_seed_3:
+    method: full_seed_3
+    seed: 20260813
+    adapter_sha256: a665864d76931f59650dec517ce66632233117685b690bde17c6138911dae46c
+    evaluation_path: outputs/evaluation/full_seed_3/evaluations.jsonl
+    evaluation_sha256: 8ab7d8040a1d49c9973f9ace7a5fdd9ce5c911a191347763f2148ab83f796932
+
+expected:
+  rows: 2400
+  inputs: 400
+  conditions:
+    - original
+    - lexical_evidence_removal
+    - prefix_truncation_50
+    - irrelevant_distractor
+    - lexical_contradiction
+    - no_passage
+
+aggregation:
+  probability_mean: arithmetic
+  variance: population
+  member_count: 3
+  class_order: [Yes, No]
+  probability_families: [raw, calibrated]
+
+claim_boundaries:
+  members_are_posterior_samples: false
+  full_transformer_is_bayesian: false
+  test_labels_used_for_fitting_or_tuning: false
+  mutual_information_name: finite-ensemble-entropy-Jensen-gap
+
+output:
+  directory: outputs/ensemble/three_lora

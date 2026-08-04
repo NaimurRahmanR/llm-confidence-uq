@@ -1,0 +1,15 @@
+# Direct dependencies pinned for the verified Colab experiment environment.
+# The observed PyTorch build was 2.11.0+cu128 on an NVIDIA A100-SXM4-80GB.
+accelerate==1.14.0
+datasets==4.0.0
+huggingface-hub==1.23.0
+matplotlib==3.10.0
+numpy==2.0.2
+pandas==2.2.2
+peft==0.19.1
+PyYAML==6.0.3
+safetensors==0.8.0
+scikit-learn==1.6.1
+seaborn==0.13.2
+torch==2.11.0
+transformers==5.13.1

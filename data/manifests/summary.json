@@ -1,0 +1,37 @@
+{
+  "dataset_id": "google/boolq",
+  "dataset_revision": "35b264d03638db9f4ce671b711558bf7ff0f80d5",
+  "eligibility_max_prompt_tokens": 768,
+  "schema_version": 1,
+  "selected_class_counts": {
+    "calibration": {
+      "false": 75,
+      "true": 125
+    },
+    "test": {
+      "false": 151,
+      "true": 249
+    },
+    "train": {
+      "false": 301,
+      "true": 499
+    }
+  },
+  "selected_sizes": {
+    "calibration": 200,
+    "test": 400,
+    "train": 800
+  },
+  "selection_algorithm": "sha256-stratified-v1",
+  "selection_seed": 20260803,
+  "source_eligible_class_counts": {
+    "train": {
+      "false": 3551,
+      "true": 5872
+    },
+    "validation": {
+      "false": 1236,
+      "true": 2032
+    }
+  }
+}

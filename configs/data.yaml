@@ -1,0 +1,43 @@
+schema_version: 1
+
+data:
+  dataset_id: google/boolq
+  dataset_revision: 35b264d03638db9f4ce671b711558bf7ff0f80d5
+  licence: cc-by-sa-3.0
+  source_expected_rows:
+    train: 9427
+    validation: 3270
+  source_expected_sha256:
+    train: c9a4e2f1edce1468990b2c8a5ddbe861215a64461b89da8f3327fa38a22a4f22
+    validation: c81b6520f1a51a8b96de45420b3d1f78184aee00373c77852132b297f2e567ef
+
+model:
+  id: Qwen/Qwen2.5-1.5B-Instruct
+  revision: 989aa7980e4cf806f80c7fef2b1adb7bc71aa306
+  tokenizer_id: Qwen/Qwen2.5-1.5B-Instruct
+  tokenizer_revision: 989aa7980e4cf806f80c7fef2b1adb7bc71aa306
+
+prompt:
+  renderer_version: qwen-chat-boolq-confidence-v1
+  system: >-
+    Use only the supplied passage to answer the binary question. Return exactly two
+    lines. Line 1 must be 'Answer: Yes' or 'Answer: No'. Line 2 must be
+    'Confidence: N', where N is an integer from 0 to 100.
+  user_template: |-
+    Passage: {passage}
+    Question: {question}
+  classification_prefix: "Answer:"
+  apply_chat_template: true
+  add_generation_prompt: true
+  add_special_tokens: false
+  padding: false
+  truncation: false
+
+selection:
+  algorithm: sha256-stratified-v1
+  seed: 20260803
+  train_size: 800
+  calibration_size: 200
+  test_size: 400
+  original_prompt_eligibility_max_tokens: 768
+  runtime_max_sequence_tokens: 1024

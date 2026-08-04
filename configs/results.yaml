@@ -1,0 +1,100 @@
+schema_version: 1
+protocol_version: boolq-unified-results-v1
+
+inputs:
+  evaluations:
+    baseline:
+      path: outputs/evaluation/baseline/evaluations.jsonl
+      sha256: 4a5989da8718ae2c1ed6ae5bc553c327827d0d1def8cece1c53cbe263010f34f
+    full_seed_1:
+      path: outputs/evaluation/full_seed_1/evaluations.jsonl
+      sha256: 57f6df2685aca0913cbbf88e536355b6a12212abdb069f3f700c6dafe3563aa0
+    full_seed_2:
+      path: outputs/evaluation/full_seed_2/evaluations.jsonl
+      sha256: b0e3aabb436b69a7604333bf6464dc826515e1dd571aa77d6bae04b94caf65c5
+    full_seed_3:
+      path: outputs/evaluation/full_seed_3/evaluations.jsonl
+      sha256: 8ab7d8040a1d49c9973f9ace7a5fdd9ce5c911a191347763f2148ab83f796932
+  ensemble:
+    path: outputs/ensemble/three_lora/ensemble_predictions.jsonl
+    sha256: 42fb302293404f8f4dbccd1db99a0557468057222bc8212d84f58f32510f2528
+  laplace_head:
+    path: outputs/laplace_head/full/predictions.jsonl
+    sha256: 4e792d446a19822dd4513458449e7a0f2cec5eb95b39c34ae37bd55e3fc4fafc
+
+expected:
+  rows_per_variant: 2400
+  inputs: 400
+  conditions:
+    - original
+    - lexical_evidence_removal
+    - prefix_truncation_50
+    - irrelevant_distractor
+    - lexical_contradiction
+    - no_passage
+  all_variants:
+    - baseline_raw
+    - baseline_calibrated
+    - full_seed_1_raw
+    - full_seed_1_calibrated
+    - full_seed_2_raw
+    - full_seed_2_calibrated
+    - full_seed_3_raw
+    - full_seed_3_calibrated
+    - three_lora_ensemble_raw
+    - three_lora_ensemble_calibrated
+    - laplace_head
+  primary_variants:
+    - baseline_raw
+    - baseline_calibrated
+    - full_seed_1_calibrated
+    - full_seed_2_calibrated
+    - full_seed_3_calibrated
+    - three_lora_ensemble_calibrated
+    - laplace_head
+  figures:
+    - 01_reliability_diagram.png
+    - 02_risk_coverage.png
+    - 03_accuracy_by_condition.png
+    - 04_ece_by_condition.png
+    - 05_expressed_vs_token_confidence.png
+    - 06_confidence_change.png
+    - 07_uncertainty_change.png
+    - 08_method_comparison.png
+
+metrics:
+  ece_bins: 10
+  nll_epsilon: 1.0e-12
+  brier_definition: binary-yes-probability
+  error_detection_score: one-minus-selected-class-confidence
+  expressed_invalid_policy: retain-missing-no-imputation
+
+claim_boundaries:
+  ensemble_members_are_posterior_samples: false
+  full_transformer_is_bayesian: false
+  laplace_scope: binary-linear-head-over-frozen-representations
+  test_labels_used_for_fitting_or_tuning: false
+  post_hoc_test_results_are_descriptive_not_model_selection: true
+  lower_ece_alone_proves_superior_reliability: false
+
+implementation:
+  src/llm_confidence_uq/analysis.py: ba4ffce29552ed75fe7210b923c8df4ab4cc574e1178a75c91bf17526192eaaa
+  scripts/build_results.py: bf0f6508050b3d72a382b9deeb56fd7cccdc41d9cfbf4c3f11f2a97206978425
+
+prerequisites:
+  configs/evaluation.yaml: 882ce9f3d45bb409417026c3a9537bcd112e306561f41ff9abba176e8ccdab09
+  configs/ensemble.yaml: 085c26a387f649aa667911209af5b52bc4eecda1e52b423b65b7e224481d931b
+  configs/laplace_head.yaml: 7feb85f16088a05e2882bb5dd6db5dfa4aac49b16873b26b989eeda9d7dae48c
+  src/llm_confidence_uq/evaluation.py: ad8b58897fc4cefa5857dd63985f89f83680fc045be7300ac567c80188758c57
+  src/llm_confidence_uq/ensemble.py: e05e7132de430ed5619145165ea44a43af103fcee5a6d79b028395504f630fe3
+  src/llm_confidence_uq/laplace_head.py: 542a07e34be0d1d182696f3c9f0dfacff369a64670711f0d9d6b40c00b8d6e18
+  outputs/evaluation/baseline/evaluations.jsonl: 4a5989da8718ae2c1ed6ae5bc553c327827d0d1def8cece1c53cbe263010f34f
+  outputs/evaluation/full_seed_1/evaluations.jsonl: 57f6df2685aca0913cbbf88e536355b6a12212abdb069f3f700c6dafe3563aa0
+  outputs/evaluation/full_seed_2/evaluations.jsonl: b0e3aabb436b69a7604333bf6464dc826515e1dd571aa77d6bae04b94caf65c5
+  outputs/evaluation/full_seed_3/evaluations.jsonl: 8ab7d8040a1d49c9973f9ace7a5fdd9ce5c911a191347763f2148ab83f796932
+  outputs/ensemble/three_lora/ensemble_predictions.jsonl: 42fb302293404f8f4dbccd1db99a0557468057222bc8212d84f58f32510f2528
+  outputs/laplace_head/full/predictions.jsonl: 4e792d446a19822dd4513458449e7a0f2cec5eb95b39c34ae37bd55e3fc4fafc
+
+output:
+  directory: outputs/results/gate8
+  run_manifest_root: outputs/manifests/results

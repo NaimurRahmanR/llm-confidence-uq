@@ -1,0 +1,47 @@
+schema_version: 1
+protocol_version: boolq-temperature-scaling-v1
+classes: ["Yes", "No"]
+
+data:
+  manifest_path: data/manifests/calibration.jsonl
+  manifest_sha256: d10e82665d36500ac3d8a8be618e660736d99ceea0336f088bb2b37121a619ce
+  rows: 200
+  research_split: calibration
+  source_split: train
+  evidence_condition: original
+  labels: calibration-only
+  test_labels_used: false
+
+methods:
+  baseline:
+    predictions_path: outputs/predictions/calibration/baseline/full/predictions.jsonl
+    predictions_sha256: 11bb04ad0507db1a530523747d015c2344646bc4b0dd39aaf230368651cb855f
+  full_seed_1:
+    predictions_path: outputs/predictions/calibration/full_seed_1/full/predictions.jsonl
+    predictions_sha256: b4a287c0c1a90259b09d55d88446abf4cbcff2b980cce51399765e5e374bc9af
+  full_seed_2:
+    predictions_path: outputs/predictions/calibration/full_seed_2/full/predictions.jsonl
+    predictions_sha256: e085e9dea029f3d7c74f91f0dca9e1f90c62903c773effbcaf53d70d617d4fbd
+  full_seed_3:
+    predictions_path: outputs/predictions/calibration/full_seed_3/full/predictions.jsonl
+    predictions_sha256: e3fcfe03921eb85854ee3e08f656602e6c7ef1e0629fcbc823096cf19d16af12
+
+fitting:
+  objective: mean-cross-entropy
+  parameterization: bounded-sigmoid-positive-temperature-v1
+  optimizer: torch.optim.LBFGS
+  line_search: strong_wolfe
+  dtype: float64
+  device: cpu
+  minimum_temperature: 0.01
+  maximum_temperature: 100.0
+  maximum_iterations: 100
+  ece_bins: 10
+
+implementation:
+  src/llm_confidence_uq/calibration.py: c1dc122e815f46b4824db209b442971c4f7338d69e9133d9b250b8740a598a20
+  scripts/fit_temperature.py: 674bfe21d7ee6be42a17c0943d295bc664cb84c3d97266b582d4ea38cf366e2c
+
+output:
+  root: outputs/calibration/temperature
+  run_manifest_root: outputs/manifests/temperature

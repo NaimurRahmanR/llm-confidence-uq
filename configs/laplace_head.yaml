@@ -1,0 +1,96 @@
+schema_version: 1
+protocol_version: boolq-frozen-qwen-diagonal-laplace-head-v1
+
+model:
+  id: Qwen/Qwen2.5-1.5B-Instruct
+  revision: 989aa7980e4cf806f80c7fef2b1adb7bc71aa306
+  tokenizer_id: Qwen/Qwen2.5-1.5B-Instruct
+  tokenizer_revision: 989aa7980e4cf806f80c7fef2b1adb7bc71aa306
+  expected_model_class: Qwen2Model
+  expected_tokenizer_class: Qwen2Tokenizer
+  hidden_size: 1536
+  dtype: bfloat16
+  transformer_frozen: true
+  adapter_attached: false
+  representation: final_hidden_state_at_last_attended_answer_prefix_token
+
+data:
+  dataset_id: google/boolq
+  dataset_revision: 35b264d03638db9f4ce671b711558bf7ff0f80d5
+  train_manifest_path: data/manifests/train.jsonl
+  train_manifest_sha256: 8427a69570e3457fcff5a5482c205117ced2f3c6f98ca225156aebf7283991c3
+  test_manifest_path: data/manifests/test.jsonl
+  test_manifest_sha256: 42a346cb58d0ef1530b5fb805cc798c0191a6f2884d2f1766a4d86d24817d588
+  degradation_manifest_path: data/degradations/test.jsonl
+  degradation_manifest_sha256: 82c6285ee0c236c8b75d65632b1fda3e85f8e0c492f89aef877d06c17fa1255c
+  train_rows: 800
+  test_inputs: 400
+  test_rows: 2400
+
+feature_extraction:
+  batch_size: 16
+  padding_side: left
+  maximum_sequence_tokens: 1024
+  persist_representations: false
+
+map:
+  likelihood: bernoulli-logistic
+  prior: zero-mean-isotropic-gaussian
+  prior_precision: 1.0
+  optimizer: full-batch-lbfgs
+  maximum_iterations: 100
+  standardization: training-mean-population-std-only
+  minimum_scale: 1.0e-6
+
+laplace:
+  curvature: exact-logistic-negative-log-posterior-diagonal
+  covariance: inverse-diagonal-precision
+  posterior_samples:
+    smoke: 128
+    full: 256
+  sampling_seed: 20260821
+  predictive_chunk_size: 128
+
+stages:
+  smoke:
+    training_examples: 32
+    test_rows: 12
+    test_selection: baseline-smoke12-label-blind
+  full:
+    training_examples: 800
+    test_rows: 2400
+    test_selection: all-frozen-degradation-rows
+
+environment:
+  gpu_name: NVIDIA A100-SXM4-80GB
+  compute_capability: [8, 0]
+  vram_gib: 79.250732421875
+  python: 3.12.13
+  pytorch: 2.11.0+cu128
+  pytorch_cuda_build: '12.8'
+
+implementation:
+  src/llm_confidence_uq/laplace_head.py: 542a07e34be0d1d182696f3c9f0dfacff369a64670711f0d9d6b40c00b8d6e18
+  scripts/run_laplace_head.py: e17c70bd77efc34e62e4f2051908cba31ec820b10ef1a5914e7ae6256285d003
+
+prerequisites:
+  configs/data.yaml: 412fd6da74212e071159463e104329efefbc8fbe6b853c29c825e3ab37cb64ac
+  configs/degradations.yaml: 303238ae02025c9e5cb59bbd061949b6798f5fde8936a1f0604d15f0552cf2e3
+  data/manifests/train.jsonl: 8427a69570e3457fcff5a5482c205117ced2f3c6f98ca225156aebf7283991c3
+  data/manifests/test.jsonl: 42a346cb58d0ef1530b5fb805cc798c0191a6f2884d2f1766a4d86d24817d588
+  data/degradations/test.jsonl: 82c6285ee0c236c8b75d65632b1fda3e85f8e0c492f89aef877d06c17fa1255c
+  scripts/prepare_degradations.py: aee819f1727a9113a4b2df2c8a946747dd90565b2659bd3dcbf635a4b3d13e86
+  scripts/run_baseline.py: a2b193e16c0508dd72df8a881b609c852760fe54e57cb8c249d230b0a3709570
+  scripts/train_lora.py: f059463f1b83ce3a372d5e9b2587e9727071afecc9279c55b9c514e209eb834e
+
+claim_boundaries:
+  full_transformer_is_bayesian: false
+  transformer_weights_frozen: true
+  approximate_posterior_scope: binary_linear_prediction_head_only
+  diagonal_covariance_ignores_parameter_correlations: true
+  local_gaussian_approximation: true
+  test_labels_used_for_fitting_or_tuning: false
+
+output:
+  root: outputs/laplace_head
+  run_manifest_root: outputs/manifests/laplace_head

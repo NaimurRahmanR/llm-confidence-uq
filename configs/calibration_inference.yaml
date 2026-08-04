@@ -1,0 +1,53 @@
+schema_version: 1
+protocol_version: boolq-original-calibration-inference-v1
+
+dataset:
+  id: google/boolq
+  revision: 35b264d03638db9f4ce671b711558bf7ff0f80d5
+  source_split: train
+  expected_source_rows: 9427
+  canonical_source_sha256: c9a4e2f1edce1468990b2c8a5ddbe861215a64461b89da8f3327fa38a22a4f22
+
+input:
+  manifest_path: data/manifests/calibration.jsonl
+  manifest_sha256: d10e82665d36500ac3d8a8be618e660736d99ceea0336f088bb2b37121a619ce
+  rows: 200
+  research_split: calibration
+  evidence_condition: original
+  labels_available_to_model_inference: false
+
+selection:
+  seed: 20260803
+  eligibility_max_prompt_tokens: 768
+  stages:
+    smoke8:
+      rows: 8
+      algorithm: first-eight-canonical-manifest-order-label-blind-v1
+    full:
+      rows: 200
+      algorithm: all-canonical-manifest-rows-label-blind-v1
+
+methods:
+  baseline:
+    inference_config_path: configs/baseline.yaml
+    inference_config_sha256: 021e8dcdb7e316d83fa9528aea5d21b427a80161c398c86d6bf26ae834c43c85
+  full_seed_1:
+    inference_config_path: configs/lora_inference.yaml
+    inference_config_sha256: 2a57bad06f297a4e77ad2d308673c0e5e522bd53275d983c1f17260337be2b11
+  full_seed_2:
+    inference_config_path: configs/lora_inference.yaml
+    inference_config_sha256: 2a57bad06f297a4e77ad2d308673c0e5e522bd53275d983c1f17260337be2b11
+  full_seed_3:
+    inference_config_path: configs/lora_inference.yaml
+    inference_config_sha256: 2a57bad06f297a4e77ad2d308673c0e5e522bd53275d983c1f17260337be2b11
+
+implementation:
+  src/llm_confidence_uq/calibration_inference.py: ff9b01f5232886c7ee7d4c37cc9041f8cddf6bdcd73ab21911c09aa66cec395c
+  scripts/run_calibration_inference.py: ed138b07dc1c291f7f75b6ae8e5d23bb37da80c8e4d3d3966ee264dc2a4d46a0
+  scripts/run_baseline.py: a2b193e16c0508dd72df8a881b609c852760fe54e57cb8c249d230b0a3709570
+  scripts/run_lora_inference.py: 5a8f8f171a1d0cd28db6b8751d993745d770faed8e18fa39c129ebe1dc3510b5
+
+output:
+  root: outputs/predictions/calibration
+  batch_shard_directory: batches
+  run_manifest_root: outputs/manifests/calibration_inference
