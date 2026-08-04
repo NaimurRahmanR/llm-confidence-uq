@@ -11,9 +11,15 @@ Qwen2.5-1.5B-Instruct baseline was compared with three independently seeded
 LoRA adapters, temperature-scaled probabilities, a three-adapter ensemble,
 and a Laplace-approximated Bayesian binary linear head over frozen model
 representations. Experiments used deterministic 800/200/400 BoolQ
-train/calibration/test subsets and 2,400 condition-level test rows. The best
-single adapter achieved 73.88% overall accuracy versus
-67.38% for the calibrated baseline. The ensemble gave
+train/calibration/test subsets and 2,400 condition-level test rows. Across
+the three adapters, calibrated overall accuracy was 73.11%
+mean with a 0.98-point
+sample standard deviation and a 72.00%–73.88%
+range. The mean improvement over the 67.38% calibrated
+baseline was 5.74
+points (95% paired input-cluster bootstrap interval
+2.96 to
+8.33). The ensemble gave
 the strongest observed error-detection AUROC (0.7102),
 whereas the Laplace head gave the lowest aggregate 10-bin ECE
 (0.0230) without leading on accuracy or error ranking.
@@ -179,6 +185,12 @@ the manifest history.
 - **Predictive entropy** measures uncertainty of a binary predictive mean.
 - **Error-detection AUROC** measures whether `1-confidence` ranks errors
   above correct predictions; it does not select an operating threshold.
+- **Error-detection AUPRC** summarizes precision–recall ranking with errors
+  as the positive class and must be interpreted against the error prevalence.
+- **UQ-signal discrimination** evaluates predictive entropy, ensemble
+  member variance and MI-style disagreement, and Laplace predictive variance
+  and mutual information for both error ranking and original-versus-degraded
+  evidence ranking.
 - **Risk–coverage** orders examples by confidence and reports selective risk
   as lower-confidence predictions are withheld.
 - **Paired confidence/entropy change** compares each degraded input with its
@@ -200,10 +212,32 @@ the manifest history.
 | Three-LoRA ensemble calibrated | 72.96% | 0.5482 | 0.1829 | 0.0723 | 0.7102 |
 | Laplace head | 67.67% | 0.6067 | 0.2088 | 0.0230 | 0.6356 |
 
-LoRA seed 2 had the highest overall accuracy (73.88%) and
-lowest overall NLL (0.5422) and Brier score
-(0.1800) among the primary variants. The calibrated ensemble
-had slightly lower accuracy (72.96%) but the strongest
+The three calibrated LoRA seeds are summarized together rather than selecting
+the numerically strongest seed:
+
+| Metric | Three-seed mean | Sample SD | Range |
+|---|---:|---:|---:|
+| Accuracy | 73.11% | 0.98 pp | 72.00%–73.88% |
+| NLL | 0.5545 | 0.0158 | 0.5422–0.5723 |
+| Brier | 0.1849 | 0.0068 | 0.1800–0.1927 |
+| ECE (10 bins) | 0.0797 | 0.0060 | 0.0756–0.0866 |
+| Error AUROC | 0.7013 | 0.0117 | 0.6879–0.7088 |
+
+All reported differences below are candidate minus reference. Intervals are
+95% paired percentile intervals from 2,000 bootstrap samples of the 400 input
+IDs; every sampled input carries all six evidence conditions.
+
+| Paired comparison | Δ accuracy [95% CI] | Δ NLL [95% CI] | Δ Brier [95% CI] | Δ ECE [95% CI] | Δ error AUROC [95% CI] |
+|---|---:|---:|---:|---:|---:|
+| Baseline calibrated − raw | +0.00 pp [+0.00, +0.00] | -0.3789 [-0.4524, -0.3029] | -0.0458 [-0.0548, -0.0367] | -0.1452 [-0.1485, -0.1412] | +0.0000 [+0.0000, +0.0000] |
+| LoRA seed 1 − calibrated baseline | +6.08 pp [+3.33, +8.62] | -0.0543 [-0.0897, -0.0168] | -0.0251 [-0.0381, -0.0108] | +0.0084 [-0.0160, +0.0352] | +0.0353 [+0.0018, +0.0688] |
+| LoRA seed 2 − calibrated baseline | +6.50 pp [+3.67, +9.25] | -0.0613 [-0.0975, -0.0224] | -0.0272 [-0.0412, -0.0124] | +0.0070 [-0.0190, +0.0346] | +0.0338 [+0.0003, +0.0662] |
+| LoRA seed 3 − calibrated baseline | +4.63 pp [+1.67, +7.33] | -0.0312 [-0.0673, +0.0089] | -0.0145 [-0.0280, +0.0006] | +0.0180 [-0.0059, +0.0463] | +0.0144 [-0.0190, +0.0448] |
+| LoRA three-seed mean − calibrated baseline | +5.74 pp [+2.96, +8.33] | -0.0490 [-0.0840, -0.0106] | -0.0222 [-0.0358, -0.0079] | +0.0111 [-0.0128, +0.0378] | +0.0278 [-0.0030, +0.0590] |
+| Calibrated ensemble − calibrated baseline | +5.58 pp [+2.75, +8.25] | -0.0553 [-0.0899, -0.0171] | -0.0242 [-0.0377, -0.0098] | +0.0037 [-0.0216, +0.0308] | +0.0366 [+0.0047, +0.0691] |
+| Laplace head − calibrated baseline | +0.29 pp [-2.83, +3.46] | +0.0032 [-0.0334, +0.0393] | +0.0016 [-0.0122, +0.0159] | -0.0457 [-0.0729, +0.0005] | -0.0380 [-0.0769, +0.0012] |
+
+The calibrated ensemble had 72.96% accuracy and the strongest
 error-detection AUROC (0.7102). The
 Laplace head's low ECE (0.0230) coexisted with
 67.67% accuracy and AUROC
@@ -263,6 +297,29 @@ is lower.
 
 ![Risk–coverage](../outputs/results/gate8/figures/02_risk_coverage.png)
 
+### 11.5 Direct evaluation of uncertainty signals
+
+| Method and score | Error AUROC | Error AUPRC | Any-degraded AUROC | Any-degraded AUPRC |
+|---|---:|---:|---:|---:|
+| Calibrated baseline predictive entropy | 0.6735 | 0.4639 | 0.6441 | 0.8892 |
+| Calibrated LoRA predictive entropy (three-seed mean ± SD) | 0.7013 ± 0.0117 | 0.4085 ± 0.0118 | 0.6213 ± 0.0007 | 0.8781 ± 0.0008 |
+| Calibrated ensemble predictive entropy | 0.7101 | 0.4334 | 0.6232 | 0.8798 |
+| Calibrated ensemble member-probability variance | 0.6459 | 0.3657 | 0.5956 | 0.8663 |
+| Calibrated ensemble MI-style disagreement | 0.5949 | 0.3336 | 0.5683 | 0.8577 |
+| Laplace predictive entropy | 0.6356 | 0.4373 | 0.5631 | 0.8609 |
+| Laplace posterior-predictive variance | 0.6200 | 0.4204 | 0.5712 | 0.8719 |
+| Laplace mutual information | 0.6083 | 0.4091 | 0.5725 | 0.8731 |
+
+For binary predictions, predictive entropy is monotone in `1-confidence`,
+so it gives the same AUROC ordering as the earlier confidence-derived error
+score. Ensemble member-probability variance and MI-style disagreement, and
+Laplace posterior-predictive variance and mutual information, were weaker
+error rankers in this experiment. Original-versus-any-degraded AUROCs were
+modest rather than decisive. The any-degraded AUPRC rows have a 5/6 positive
+prevalence by construction, so their high numerical values must be compared
+with that 0.8333 prevalence baseline. Per-condition diagnostics are retained
+in `outputs/results/statistical_analysis/uq_degradation_detection.jsonl`.
+
 ## 12. Failure analysis
 
 The strongest operational failure was generated-format instability after
@@ -277,8 +334,9 @@ the transformation metadata instead of being hidden.
 ## 13. Limitations
 
 1. Results use one 1.5B-parameter model and a bounded 400-input test subset.
-2. No confidence intervals or hypothesis tests were computed; comparisons
-   are descriptive and may reflect finite-sample variation.
+2. Bootstrap intervals are post-hoc descriptive intervals clustered by the
+   400 selected inputs; they are not preregistered hypothesis tests and do
+   not capture model-family or dataset-sampling uncertainty.
 3. The perturbations use lexical proxies and do not establish semantic
    irrelevance, answer contradiction, or ordered severity.
 4. Only three LoRA members were trained; ensemble estimates are coarse and
@@ -303,7 +361,9 @@ A100-SXM4-80GB. Raw passages and model weights are excluded. Historical run
 manifests have `git_head: null` because experiments preceded the first
 repository commit; immutable input/output hashes provide the execution
 lineage, while the release commit identifies the published code snapshot.
-See `report/reproducibility.md`.
+The Colab setup contract, preserved successful CPU test log, and GitHub
+Actions CPU workflow make environment reconstruction and contract testing
+explicit. See `report/reproducibility.md`.
 
 ## 15. Claim boundaries
 
@@ -318,10 +378,10 @@ state-of-the-art performance, and peer review.
 ## 16. Future work
 
 Future work should repeat the protocol across model families and larger
-samples, introduce semantically validated perturbations, supervise or
-separately model expressed confidence, quantify uncertainty with repeated
-dataset resampling, compare richer covariance approximations, and predefine
-formal statistical tests before collecting new test results.
+independent samples, introduce semantically validated perturbations,
+supervise or separately model expressed confidence, compare richer covariance
+approximations, and predefine formal statistical tests before collecting new
+test results.
 
 ## 17. References
 

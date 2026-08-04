@@ -82,6 +82,46 @@ class ReportingContractTests(unittest.TestCase):
         for forbidden_literal in ("0.73875", "0.7101502201251497", "0.0229594628967815"):
             self.assertNotIn(forbidden_literal, source)
 
+    def test_scientific_headline_and_three_seed_summary_are_primary(self) -> None:
+        readme = self.text["README.md"]
+        self.assertIn(
+            "LoRA adaptation improved binary QA performance, but generated confidence\n"
+            "formatting became substantially less reliable; temperature scaling improved\n"
+            "probabilistic scores, while ensemble and Laplace methods showed different\n"
+            "calibration and error-ranking trade-offs.",
+            readme,
+        )
+        self.assertIn("Three-seed LoRA summary", readme)
+        self.assertIn("mean ±", readme)
+        self.assertNotIn("strongest single adapter", readme.lower())
+
+    def test_clustered_intervals_cover_every_requested_metric(self) -> None:
+        rows = self.inputs["bootstrap_differences"]
+        self.assertEqual(len(rows), 49)
+        self.assertTrue(all(row["cluster_unit"] == "input_id" for row in rows))
+        self.assertTrue(all(row["clusters"] == 400 for row in rows))
+        self.assertTrue(all(row["bootstrap_repetitions"] == 2000 for row in rows))
+        expected = {"accuracy", "nll", "brier", "ece_10_bin", "error_detection_auroc"}
+        self.assertTrue(all(set(row["metrics"]) == expected for row in rows))
+        report = self.text["report/technical_report.md"]
+        for label in ("Δ accuracy", "Δ NLL", "Δ Brier", "Δ ECE", "Δ error AUROC"):
+            self.assertIn(label, report)
+
+    def test_direct_uq_signal_results_are_reported(self) -> None:
+        error_rows = self.inputs["uq_error_detection"]
+        signals = {row["signal"] for row in error_rows}
+        self.assertTrue({
+            "predictive_entropy",
+            "ensemble_member_probability_variance",
+            "ensemble_mi_style_disagreement",
+            "laplace_posterior_predictive_variance",
+            "laplace_mutual_information",
+        }.issubset(signals))
+        report = self.text["report/technical_report.md"]
+        self.assertIn("Direct evaluation of uncertainty signals", report)
+        self.assertIn("Any-degraded AUROC", report)
+        self.assertIn("5/6 positive", report)
+
     def test_stale_and_unsupported_claims_are_absent(self) -> None:
         combined = "\n".join(self.text.values())
         self.assertNotIn("no empirical research results are claimed", combined.lower())
@@ -99,6 +139,8 @@ class ReportingContractTests(unittest.TestCase):
         self.assertIn("run_calibration_inference.py --method baseline --stage full", readme)
         self.assertIn("evaluate_predictions.py --method full_seed_3", readme)
         self.assertIn("build_report.py --config configs/report.json", readme)
+        self.assertIn("build_statistical_analysis.py --config configs/statistical_analysis.yaml", readme)
+        self.assertIn("bash colab/setup.sh", readme)
         self.assertNotIn("configs/report.yaml", readme)
         self.assertNotIn("evaluate_predictions.py --all", readme)
         self.assertNotIn("run_lora_inference.py --method", readme)

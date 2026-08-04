@@ -1,18 +1,28 @@
 # Confidence Alignment and Uncertainty Quantification in LLMs Under Evidence Degradation
 
+**LoRA adaptation improved binary QA performance, but generated confidence
+formatting became substantially less reliable; temperature scaling improved
+probabilistic scores, while ensemble and Laplace methods showed different
+calibration and error-ranking trade-offs.**
+
 A reproducible PyTorch study of expressed, token-derived, calibrated,
 ensemble, and approximate Bayesian-head uncertainty under controlled
-evidence perturbations.
+evidence perturbations, with paired bootstrap intervals clustered by input.
 
-> **Status:** Completed application-stage research artefact. All eight
-> validation gates passed. This work is not peer reviewed.
+> **Status:** Completed application-stage research artefact. All original
+> eight validation gates and the post-release statistical-analysis gate
+> passed. This work is not peer reviewed.
 
 ## Headline findings
 
-- The strongest single adapter, LoRA seed 2 after temperature scaling,
-  reached **73.88%** overall
-  accuracy, an absolute **6.50-percentage-point** increase
-  over the calibrated frozen baseline (67.38%).
+- Across all three calibrated LoRA seeds, overall accuracy was
+  **73.11% mean ± 0.98 percentage points**
+  (range 72.00%–73.88%).
+  The mean paired improvement over the calibrated baseline was
+  **5.74 points**
+  (95% input-cluster bootstrap interval
+  2.96 to
+  8.33).
 - The calibrated three-LoRA ensemble produced the highest observed
   error-detection AUROC (**0.7102**).
 - The Laplace-approximated linear head produced the lowest aggregate
@@ -53,6 +63,34 @@ evidence perturbations.
 | Three-LoRA ensemble calibrated | 72.96% | 0.5482 | 0.1829 | 0.0723 | 0.7102 |
 | Laplace head | 67.67% | 0.6067 | 0.2088 | 0.0230 | 0.6356 |
 
+### Three-seed LoRA summary
+
+| Metric | Three-seed mean | Sample SD | Range |
+|---|---:|---:|---:|
+| Accuracy | 73.11% | 0.98 pp | 72.00%–73.88% |
+| NLL | 0.5545 | 0.0158 | 0.5422–0.5723 |
+| Brier | 0.1849 | 0.0068 | 0.1800–0.1927 |
+| ECE (10 bins) | 0.0797 | 0.0060 | 0.0756–0.0866 |
+| Error AUROC | 0.7013 | 0.0117 | 0.6879–0.7088 |
+
+### Paired uncertainty and direct UQ diagnostics
+
+| Method and score | Error AUROC | Error AUPRC | Any-degraded AUROC | Any-degraded AUPRC |
+|---|---:|---:|---:|---:|
+| Calibrated baseline predictive entropy | 0.6735 | 0.4639 | 0.6441 | 0.8892 |
+| Calibrated LoRA predictive entropy (three-seed mean ± SD) | 0.7013 ± 0.0117 | 0.4085 ± 0.0118 | 0.6213 ± 0.0007 | 0.8781 ± 0.0008 |
+| Calibrated ensemble predictive entropy | 0.7101 | 0.4334 | 0.6232 | 0.8798 |
+| Calibrated ensemble member-probability variance | 0.6459 | 0.3657 | 0.5956 | 0.8663 |
+| Calibrated ensemble MI-style disagreement | 0.5949 | 0.3336 | 0.5683 | 0.8577 |
+| Laplace predictive entropy | 0.6356 | 0.4373 | 0.5631 | 0.8609 |
+| Laplace posterior-predictive variance | 0.6200 | 0.4204 | 0.5712 | 0.8719 |
+| Laplace mutual information | 0.6083 | 0.4091 | 0.5725 | 0.8731 |
+
+Intervals for accuracy, NLL, Brier, ECE, and error AUROC differences use
+2,000 paired percentile bootstrap replicates over the 400 input IDs; all six
+conditions travel with each sampled input. Full comparison and condition
+tables are in `outputs/results/statistical_analysis/`.
+
 Metrics are descriptive across all 2,400 condition-level test rows. No
 test label was used for training, temperature fitting, prompt selection,
 or hyperparameter tuning.
@@ -88,11 +126,12 @@ python scripts/evaluate_predictions.py --method full_seed_3 --config configs/eva
 python scripts/evaluate_ensemble.py --config configs/ensemble.yaml
 python scripts/run_laplace_head.py --stage full --config configs/laplace_head.yaml
 python scripts/build_results.py --config configs/results.yaml
+python scripts/build_statistical_analysis.py --config configs/statistical_analysis.yaml
 python scripts/build_report.py --config configs/report.json
 python -m unittest discover -s tests -p 'test_*.py' -v
 ```
 
-The pipeline refuses incompatible existing artifacts and records both
+For a fresh Colab runtime, run `bash colab/setup.sh` first. The pipeline refuses incompatible existing artifacts and records both
 successful and failed runs. Raw BoolQ passages and LoRA checkpoints are not
 committed. See [the reproducibility guide](report/reproducibility.md).
 

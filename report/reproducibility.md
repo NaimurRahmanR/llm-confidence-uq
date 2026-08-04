@@ -20,7 +20,9 @@ The verified full runs used:
 - GPU `NVIDIA A100-SXM4-80GB` with 79.25 GiB reported VRAM
 - `torchao` excluded after an incompatible optional installation was diagnosed.
 
-Pinned direct Python dependencies are listed in `requirements.txt` and `pyproject.toml`.
+Pinned direct Python dependencies are listed in `requirements.txt` and `pyproject.toml`. A fresh GPU Colab runtime can be reconstructed and checked with `bash colab/setup.sh`; `colab/verify_environment.py` fails closed on package, CUDA, or TorchAO drift.
+
+CPU-compatible unit and contract tests run in `.github/workflows/cpu-tests.yml`. The successful local output is preserved under `artifacts/test-results/` with its SHA-256 digest.
 
 ## Data isolation
 
@@ -32,13 +34,13 @@ Pinned direct Python dependencies are listed in `requirements.txt` and `pyprojec
 
 ## Artifact integrity
 
-Each completed stage publishes payload hashes and a completion marker last. Existing differing artifacts are rejected. Failed-run manifests are preserved. Gate 8 binds each figure to its machine-readable source table and records that no manual result values were used.
+Each completed stage publishes payload hashes and a completion marker last. Existing differing artifacts are rejected. Failed-run manifests are preserved. Gate 8 binds each figure to its machine-readable source table and records that no manual result values were used. The statistical-analysis stage adds 2,000 paired bootstrap samples clustered by all 400 input IDs and direct UQ-signal ranking tables without rerunning model inference.
 
 Historical experiment manifests contain `git_head: null` because the runs occurred before the repository's first commit. Their exact configuration, input, checkpoint, prediction, and output hashes remain recorded. The eventual release commit identifies the published source snapshot but does not retroactively change those manifests.
 
 ## Full command order
 
-Use the commands in the root README in order, retaining smoke gates before full runs. GPU stages are baseline inference, LoRA training/inference, calibration inference, and frozen-representation extraction. Temperature fitting, evaluation, ensemble aggregation, result construction, and report generation support CPU execution.
+Use the commands in the root README in order, retaining smoke gates before full runs. GPU stages are baseline inference, LoRA training/inference, calibration inference, and frozen-representation extraction. Temperature fitting, evaluation, ensemble aggregation, clustered statistical analysis, result construction, and report generation support CPU execution.
 
 ## Files intentionally excluded
 
@@ -59,6 +61,12 @@ The following verified inputs generate the README, report, citation, data note, 
 | `outputs/results/gate8/paired_changes.jsonl` | `9b9d40a1378b7232d4bd0882cf8d60b60697eb5848fafb19601bb4e41fb91ef8` |
 | `outputs/results/gate8/expressed_summary.jsonl` | `2208397df19e810665ca711e71ebf35e2b7806f5dce80ed8e954e3ed2676f854` |
 | `outputs/results/gate8/figure_manifest.json` | `9fe8792c94f3c3cce4e70f14bb80e48bc0222659eb3007c84d1625faa4045291` |
+| `outputs/results/statistical_analysis/summary.json` | `8a8d0d3e51ebed844baf5dc90914b06f0dc92987c7637ca4e64dbe161a5ab3f6` |
+| `outputs/results/statistical_analysis/bootstrap_differences.jsonl` | `672ec1683e1e719bbe0ca8f771b480b5e62ad07f4b023cb748a3bbb0ed08e588` |
+| `outputs/results/statistical_analysis/lora_seed_summary.jsonl` | `1eb6786e33e7135e55281c317d9ae911eb9d83d6eb4ab4dbe71505f952a1511a` |
+| `outputs/results/statistical_analysis/lora_seed_uq_summary.jsonl` | `228b73a6bc312989e4bfba4bd0988366cd13b1ed9a9998a76b9348c86059dc6e` |
+| `outputs/results/statistical_analysis/uq_error_detection.jsonl` | `946aed1dec21b2619cbfe32bbbd0bc472f24fa1ef014cfca60073a619c382fb1` |
+| `outputs/results/statistical_analysis/uq_degradation_detection.jsonl` | `2debf4e231f4f53508e07836978fd8898698d1bfaacd3767949ec838baa5f8c7` |
 | `data/manifests/summary.json` | `5f45de15e667f18289174ad387f05b18c9355a8ac53d9b0e4f05c87fff6f1a74` |
 | `data/degradations/summary.json` | `5fbdd462ca40cf6db9cdfc846e9d347b6d0d394e80e531cf3aa0b6d08f86f2dd` |
 | `configs/data.yaml` | `412fd6da74212e071159463e104329efefbc8fbe6b853c29c825e3ab37cb64ac` |

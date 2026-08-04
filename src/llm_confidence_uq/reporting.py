@@ -198,6 +198,16 @@ def validate_inputs(inputs: Mapping[str, Any]) -> None:
     require(laplace["test_labels_used_for_fitting_or_tuning"] is False, "Laplace test tuning")
     require(laplace["rows"] == 2400, "Laplace row drift")
 
+    statistical = inputs["statistical_summary"]
+    require(statistical["protocol_version"] == "boolq-clustered-statistical-analysis-v1", "statistical protocol drift")
+    require(statistical["clusters"] == 400 and statistical["conditions_per_cluster"] == 6, "statistical cluster drift")
+    require(statistical["bootstrap_repetitions"] == 2000, "bootstrap repetition drift")
+    require(len(inputs["bootstrap_differences"]) == 49, "bootstrap comparison cardinality drift")
+    require(len(inputs["lora_seed_summary"]) == 7, "LoRA seed summary cardinality drift")
+    require(len(inputs["uq_error_detection"]) == 11, "UQ error-signal cardinality drift")
+    require(len(inputs["uq_degradation_detection"]) == 66, "UQ degradation-signal cardinality drift")
+    require(len(inputs["lora_seed_uq_summary"]) == 1, "LoRA seed UQ summary cardinality drift")
+
 
 def pct(value: Any, digits: int = 2) -> str:
     return f"{100.0 * float(value):.{digits}f}%"
@@ -312,24 +322,147 @@ def _expressed_table(inputs: Mapping[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def _lora_seed_summary_table(inputs: Mapping[str, Any]) -> str:
+    row = next(item for item in inputs["lora_seed_summary"] if item["scope"] == "overall")
+    labels = (
+        ("accuracy", "Accuracy", True),
+        ("nll", "NLL", False),
+        ("brier", "Brier", False),
+        ("ece_10_bin", "ECE (10 bins)", False),
+        ("error_detection_auroc", "Error AUROC", False),
+    )
+    lines = [
+        "| Metric | Three-seed mean | Sample SD | Range |",
+        "|---|---:|---:|---:|",
+    ]
+    for key, label, percentage in labels:
+        values = row["metrics"][key]
+        if percentage:
+            lines.append(
+                f"| {label} | {pct(values['mean'])} | {100.0 * values['sample_standard_deviation']:.2f} pp | "
+                f"{pct(values['minimum'])}–{pct(values['maximum'])} |"
+            )
+        else:
+            lines.append(
+                f"| {label} | {dec(values['mean'])} | {dec(values['sample_standard_deviation'])} | "
+                f"{dec(values['minimum'])}–{dec(values['maximum'])} |"
+            )
+    return "\n".join(lines)
+
+
+def _interval(value: Mapping[str, Any], *, percentage: bool = False) -> str:
+    difference = float(value["difference_candidate_minus_reference"])
+    lower = float(value["percentile_interval_lower"])
+    upper = float(value["percentile_interval_upper"])
+    if percentage:
+        return f"{100.0 * difference:+.2f} pp [{100.0 * lower:+.2f}, {100.0 * upper:+.2f}]"
+    return f"{difference:+.4f} [{lower:+.4f}, {upper:+.4f}]"
+
+
+def _bootstrap_table(inputs: Mapping[str, Any]) -> str:
+    rows = [row for row in inputs["bootstrap_differences"] if row["scope"] == "overall"]
+    labels = {
+        "baseline_calibrated_vs_raw": "Baseline calibrated − raw",
+        "lora_seed_1_vs_baseline_calibrated": "LoRA seed 1 − calibrated baseline",
+        "lora_seed_2_vs_baseline_calibrated": "LoRA seed 2 − calibrated baseline",
+        "lora_seed_3_vs_baseline_calibrated": "LoRA seed 3 − calibrated baseline",
+        "lora_seed_mean_vs_baseline_calibrated": "LoRA three-seed mean − calibrated baseline",
+        "ensemble_calibrated_vs_baseline_calibrated": "Calibrated ensemble − calibrated baseline",
+        "laplace_head_vs_baseline_calibrated": "Laplace head − calibrated baseline",
+    }
+    lines = [
+        "| Paired comparison | Δ accuracy [95% CI] | Δ NLL [95% CI] | Δ Brier [95% CI] | Δ ECE [95% CI] | Δ error AUROC [95% CI] |",
+        "|---|---:|---:|---:|---:|---:|",
+    ]
+    for row in rows:
+        metrics = row["metrics"]
+        lines.append(
+            f"| {labels[row['comparison']]} | {_interval(metrics['accuracy'], percentage=True)} | "
+            f"{_interval(metrics['nll'])} | {_interval(metrics['brier'])} | "
+            f"{_interval(metrics['ece_10_bin'])} | {_interval(metrics['error_detection_auroc'])} |"
+        )
+    return "\n".join(lines)
+
+
+def _uq_signal_table(inputs: Mapping[str, Any]) -> str:
+    error = {(row["variant"], row["signal"]): row for row in inputs["uq_error_detection"]}
+    degraded = {
+        (row["variant"], row["signal"]): row
+        for row in inputs["uq_degradation_detection"]
+        if row["target"] == "any_degraded"
+    }
+    seed = inputs["lora_seed_uq_summary"][0]
+    lines = [
+        "| Method and score | Error AUROC | Error AUPRC | Any-degraded AUROC | Any-degraded AUPRC |",
+        "|---|---:|---:|---:|---:|",
+    ]
+    baseline = error[("baseline_calibrated", "predictive_entropy")]
+    baseline_degraded = degraded[("baseline_calibrated", "predictive_entropy")]
+    lines.append(
+        f"| Calibrated baseline predictive entropy | {dec(baseline['auroc'])} | {dec(baseline['average_precision'])} | "
+        f"{dec(baseline_degraded['auroc'])} | {dec(baseline_degraded['average_precision'])} |"
+    )
+    seed_error = seed["error_detection"]
+    seed_degraded = seed["degradation_detection"]["any_degraded"]
+    lines.append(
+        "| Calibrated LoRA predictive entropy (three-seed mean ± SD) | "
+        f"{dec(seed_error['auroc']['mean'])} ± {dec(seed_error['auroc']['sample_standard_deviation'])} | "
+        f"{dec(seed_error['average_precision']['mean'])} ± {dec(seed_error['average_precision']['sample_standard_deviation'])} | "
+        f"{dec(seed_degraded['auroc']['mean'])} ± {dec(seed_degraded['auroc']['sample_standard_deviation'])} | "
+        f"{dec(seed_degraded['average_precision']['mean'])} ± {dec(seed_degraded['average_precision']['sample_standard_deviation'])} |"
+    )
+    selections = (
+        ("three_lora_ensemble_calibrated", "predictive_entropy", "Calibrated ensemble predictive entropy"),
+        ("three_lora_ensemble_calibrated", "ensemble_member_probability_variance", "Calibrated ensemble member-probability variance"),
+        ("three_lora_ensemble_calibrated", "ensemble_mi_style_disagreement", "Calibrated ensemble MI-style disagreement"),
+        ("laplace_head", "predictive_entropy", "Laplace predictive entropy"),
+        ("laplace_head", "laplace_posterior_predictive_variance", "Laplace posterior-predictive variance"),
+        ("laplace_head", "laplace_mutual_information", "Laplace mutual information"),
+    )
+    for variant, signal, label in selections:
+        error_row = error[(variant, signal)]
+        degraded_row = degraded[(variant, signal)]
+        lines.append(
+            f"| {label} | {dec(error_row['auroc'])} | {dec(error_row['average_precision'])} | "
+            f"{dec(degraded_row['auroc'])} | {dec(degraded_row['average_precision'])} |"
+        )
+    return "\n".join(lines)
+
+
 def render_readme(inputs: Mapping[str, Any], config: Mapping[str, Any]) -> str:
     primary = inputs["results_summary"]["primary_overall"]
-    delta = primary["full_seed_2_calibrated"]["accuracy"] - primary["baseline_calibrated"]["accuracy"]
+    seed_summary = next(row for row in inputs["lora_seed_summary"] if row["scope"] == "overall")
+    seed_accuracy = seed_summary["metrics"]["accuracy"]
+    seed_comparison = next(
+        row for row in inputs["bootstrap_differences"]
+        if row["comparison"] == "lora_seed_mean_vs_baseline_calibrated" and row["scope"] == "overall"
+    )
+    accuracy_interval = seed_comparison["metrics"]["accuracy"]
     return f"""# {config['release']['title']}
+
+**LoRA adaptation improved binary QA performance, but generated confidence
+formatting became substantially less reliable; temperature scaling improved
+probabilistic scores, while ensemble and Laplace methods showed different
+calibration and error-ranking trade-offs.**
 
 A reproducible PyTorch study of expressed, token-derived, calibrated,
 ensemble, and approximate Bayesian-head uncertainty under controlled
-evidence perturbations.
+evidence perturbations, with paired bootstrap intervals clustered by input.
 
-> **Status:** Completed application-stage research artefact. All eight
-> validation gates passed. This work is not peer reviewed.
+> **Status:** Completed application-stage research artefact. All original
+> eight validation gates and the post-release statistical-analysis gate
+> passed. This work is not peer reviewed.
 
 ## Headline findings
 
-- The strongest single adapter, LoRA seed 2 after temperature scaling,
-  reached **{pct(primary['full_seed_2_calibrated']['accuracy'])}** overall
-  accuracy, an absolute **{100.0 * delta:.2f}-percentage-point** increase
-  over the calibrated frozen baseline ({pct(primary['baseline_calibrated']['accuracy'])}).
+- Across all three calibrated LoRA seeds, overall accuracy was
+  **{pct(seed_accuracy['mean'])} mean ± {100.0 * seed_accuracy['sample_standard_deviation']:.2f} percentage points**
+  (range {pct(seed_accuracy['minimum'])}–{pct(seed_accuracy['maximum'])}).
+  The mean paired improvement over the calibrated baseline was
+  **{100.0 * accuracy_interval['difference_candidate_minus_reference']:.2f} points**
+  (95% input-cluster bootstrap interval
+  {100.0 * accuracy_interval['percentile_interval_lower']:.2f} to
+  {100.0 * accuracy_interval['percentile_interval_upper']:.2f}).
 - The calibrated three-LoRA ensemble produced the highest observed
   error-detection AUROC (**{dec(primary['three_lora_ensemble_calibrated']['error_detection_auroc'])}**).
 - The Laplace-approximated linear head produced the lowest aggregate
@@ -361,6 +494,19 @@ evidence perturbations.
 ## Overall results
 
 {_overall_table(inputs)}
+
+### Three-seed LoRA summary
+
+{_lora_seed_summary_table(inputs)}
+
+### Paired uncertainty and direct UQ diagnostics
+
+{_uq_signal_table(inputs)}
+
+Intervals for accuracy, NLL, Brier, ECE, and error AUROC differences use
+2,000 paired percentile bootstrap replicates over the 400 input IDs; all six
+conditions travel with each sampled input. Full comparison and condition
+tables are in `outputs/results/statistical_analysis/`.
 
 Metrics are descriptive across all 2,400 condition-level test rows. No
 test label was used for training, temperature fitting, prompt selection,
@@ -397,11 +543,12 @@ python scripts/evaluate_predictions.py --method full_seed_3 --config configs/eva
 python scripts/evaluate_ensemble.py --config configs/ensemble.yaml
 python scripts/run_laplace_head.py --stage full --config configs/laplace_head.yaml
 python scripts/build_results.py --config configs/results.yaml
+python scripts/build_statistical_analysis.py --config configs/statistical_analysis.yaml
 python scripts/build_report.py --config configs/report.json
 python -m unittest discover -s tests -p 'test_*.py' -v
 ```
 
-The pipeline refuses incompatible existing artifacts and records both
+For a fresh Colab runtime, run `bash colab/setup.sh` first. The pipeline refuses incompatible existing artifacts and records both
 successful and failed runs. Raw BoolQ passages and LoRA checkpoints are not
 committed. See [the reproducibility guide](report/reproducibility.md).
 
@@ -440,9 +587,15 @@ def render_technical_report(inputs: Mapping[str, Any], config: Mapping[str, Any]
     primary = summary["primary_overall"]
     paired = _paired_index(inputs)
     baseline = primary["baseline_calibrated"]
-    seed2 = primary["full_seed_2_calibrated"]
     ensemble = primary["three_lora_ensemble_calibrated"]
     laplace = primary["laplace_head"]
+    seed_summary = next(row for row in inputs["lora_seed_summary"] if row["scope"] == "overall")
+    seed_accuracy = seed_summary["metrics"]["accuracy"]
+    seed_comparison = next(
+        row for row in inputs["bootstrap_differences"]
+        if row["comparison"] == "lora_seed_mean_vs_baseline_calibrated" and row["scope"] == "overall"
+    )
+    seed_accuracy_interval = seed_comparison["metrics"]["accuracy"]
     method = config["method_contract"]
     data = inputs["data_summary"]
     no_passage = paired[("three_lora_ensemble_calibrated", "no_passage")]
@@ -459,9 +612,15 @@ Qwen2.5-1.5B-Instruct baseline was compared with three independently seeded
 LoRA adapters, temperature-scaled probabilities, a three-adapter ensemble,
 and a Laplace-approximated Bayesian binary linear head over frozen model
 representations. Experiments used deterministic 800/200/400 BoolQ
-train/calibration/test subsets and 2,400 condition-level test rows. The best
-single adapter achieved {pct(seed2['accuracy'])} overall accuracy versus
-{pct(baseline['accuracy'])} for the calibrated baseline. The ensemble gave
+train/calibration/test subsets and 2,400 condition-level test rows. Across
+the three adapters, calibrated overall accuracy was {pct(seed_accuracy['mean'])}
+mean with a {100.0 * seed_accuracy['sample_standard_deviation']:.2f}-point
+sample standard deviation and a {pct(seed_accuracy['minimum'])}–{pct(seed_accuracy['maximum'])}
+range. The mean improvement over the {pct(baseline['accuracy'])} calibrated
+baseline was {100.0 * seed_accuracy_interval['difference_candidate_minus_reference']:.2f}
+points (95% paired input-cluster bootstrap interval
+{100.0 * seed_accuracy_interval['percentile_interval_lower']:.2f} to
+{100.0 * seed_accuracy_interval['percentile_interval_upper']:.2f}). The ensemble gave
 the strongest observed error-detection AUROC ({dec(ensemble['error_detection_auroc'])}),
 whereas the Laplace head gave the lowest aggregate 10-bin ECE
 ({dec(laplace['ece_10_bin'])}) without leading on accuracy or error ranking.
@@ -618,6 +777,12 @@ the manifest history.
 - **Predictive entropy** measures uncertainty of a binary predictive mean.
 - **Error-detection AUROC** measures whether `1-confidence` ranks errors
   above correct predictions; it does not select an operating threshold.
+- **Error-detection AUPRC** summarizes precision–recall ranking with errors
+  as the positive class and must be interpreted against the error prevalence.
+- **UQ-signal discrimination** evaluates predictive entropy, ensemble
+  member variance and MI-style disagreement, and Laplace predictive variance
+  and mutual information for both error ranking and original-versus-degraded
+  evidence ranking.
 - **Risk–coverage** orders examples by confidence and reports selective risk
   as lower-confidence predictions are withheld.
 - **Paired confidence/entropy change** compares each degraded input with its
@@ -631,10 +796,18 @@ the manifest history.
 
 {_overall_table(inputs)}
 
-LoRA seed 2 had the highest overall accuracy ({pct(seed2['accuracy'])}) and
-lowest overall NLL ({dec(seed2['nll'])}) and Brier score
-({dec(seed2['brier'])}) among the primary variants. The calibrated ensemble
-had slightly lower accuracy ({pct(ensemble['accuracy'])}) but the strongest
+The three calibrated LoRA seeds are summarized together rather than selecting
+the numerically strongest seed:
+
+{_lora_seed_summary_table(inputs)}
+
+All reported differences below are candidate minus reference. Intervals are
+95% paired percentile intervals from 2,000 bootstrap samples of the 400 input
+IDs; every sampled input carries all six evidence conditions.
+
+{_bootstrap_table(inputs)}
+
+The calibrated ensemble had {pct(ensemble['accuracy'])} accuracy and the strongest
 error-detection AUROC ({dec(ensemble['error_detection_auroc'])}). The
 Laplace head's low ECE ({dec(laplace['ece_10_bin'])}) coexisted with
 {pct(laplace['accuracy'])} accuracy and AUROC
@@ -682,6 +855,20 @@ is lower.
 
 ![Risk–coverage](../outputs/results/gate8/figures/02_risk_coverage.png)
 
+### 11.5 Direct evaluation of uncertainty signals
+
+{_uq_signal_table(inputs)}
+
+For binary predictions, predictive entropy is monotone in `1-confidence`,
+so it gives the same AUROC ordering as the earlier confidence-derived error
+score. Ensemble member-probability variance and MI-style disagreement, and
+Laplace posterior-predictive variance and mutual information, were weaker
+error rankers in this experiment. Original-versus-any-degraded AUROCs were
+modest rather than decisive. The any-degraded AUPRC rows have a 5/6 positive
+prevalence by construction, so their high numerical values must be compared
+with that 0.8333 prevalence baseline. Per-condition diagnostics are retained
+in `outputs/results/statistical_analysis/uq_degradation_detection.jsonl`.
+
 ## 12. Failure analysis
 
 The strongest operational failure was generated-format instability after
@@ -696,8 +883,9 @@ the transformation metadata instead of being hidden.
 ## 13. Limitations
 
 1. Results use one 1.5B-parameter model and a bounded 400-input test subset.
-2. No confidence intervals or hypothesis tests were computed; comparisons
-   are descriptive and may reflect finite-sample variation.
+2. Bootstrap intervals are post-hoc descriptive intervals clustered by the
+   400 selected inputs; they are not preregistered hypothesis tests and do
+   not capture model-family or dataset-sampling uncertainty.
 3. The perturbations use lexical proxies and do not establish semantic
    irrelevance, answer contradiction, or ordered severity.
 4. Only three LoRA members were trained; ensemble estimates are coarse and
@@ -722,7 +910,9 @@ A100-SXM4-80GB. Raw passages and model weights are excluded. Historical run
 manifests have `git_head: null` because experiments preceded the first
 repository commit; immutable input/output hashes provide the execution
 lineage, while the release commit identifies the published code snapshot.
-See `report/reproducibility.md`.
+The Colab setup contract, preserved successful CPU test log, and GitHub
+Actions CPU workflow make environment reconstruction and contract testing
+explicit. See `report/reproducibility.md`.
 
 ## 15. Claim boundaries
 
@@ -737,10 +927,10 @@ state-of-the-art performance, and peer review.
 ## 16. Future work
 
 Future work should repeat the protocol across model families and larger
-samples, introduce semantically validated perturbations, supervise or
-separately model expressed confidence, quantify uncertainty with repeated
-dataset resampling, compare richer covariance approximations, and predefine
-formal statistical tests before collecting new test results.
+independent samples, introduce semantically validated perturbations,
+supervise or separately model expressed confidence, compare richer covariance
+approximations, and predefine formal statistical tests before collecting new
+test results.
 
 ## 17. References
 
@@ -847,7 +1037,9 @@ def render_reproducibility(inputs: Mapping[str, Any], config: Mapping[str, Any])
         f"- GPU `{method['gpu']}` with {method['gpu_vram_gib']:.2f} GiB reported VRAM",
         "- `torchao` excluded after an incompatible optional installation was diagnosed.",
         "",
-        "Pinned direct Python dependencies are listed in `requirements.txt` and `pyproject.toml`.",
+        "Pinned direct Python dependencies are listed in `requirements.txt` and `pyproject.toml`. A fresh GPU Colab runtime can be reconstructed and checked with `bash colab/setup.sh`; `colab/verify_environment.py` fails closed on package, CUDA, or TorchAO drift.",
+        "",
+        "CPU-compatible unit and contract tests run in `.github/workflows/cpu-tests.yml`. The successful local output is preserved under `artifacts/test-results/` with its SHA-256 digest.",
         "",
         "## Data isolation",
         "",
@@ -859,13 +1051,13 @@ def render_reproducibility(inputs: Mapping[str, Any], config: Mapping[str, Any])
         "",
         "## Artifact integrity",
         "",
-        "Each completed stage publishes payload hashes and a completion marker last. Existing differing artifacts are rejected. Failed-run manifests are preserved. Gate 8 binds each figure to its machine-readable source table and records that no manual result values were used.",
+        "Each completed stage publishes payload hashes and a completion marker last. Existing differing artifacts are rejected. Failed-run manifests are preserved. Gate 8 binds each figure to its machine-readable source table and records that no manual result values were used. The statistical-analysis stage adds 2,000 paired bootstrap samples clustered by all 400 input IDs and direct UQ-signal ranking tables without rerunning model inference.",
         "",
         "Historical experiment manifests contain `git_head: null` because the runs occurred before the repository's first commit. Their exact configuration, input, checkpoint, prediction, and output hashes remain recorded. The eventual release commit identifies the published source snapshot but does not retroactively change those manifests.",
         "",
         "## Full command order",
         "",
-        "Use the commands in the root README in order, retaining smoke gates before full runs. GPU stages are baseline inference, LoRA training/inference, calibration inference, and frozen-representation extraction. Temperature fitting, evaluation, ensemble aggregation, result construction, and report generation support CPU execution.",
+        "Use the commands in the root README in order, retaining smoke gates before full runs. GPU stages are baseline inference, LoRA training/inference, calibration inference, and frozen-representation extraction. Temperature fitting, evaluation, ensemble aggregation, clustered statistical analysis, result construction, and report generation support CPU execution.",
         "",
         "## Files intentionally excluded",
         "",
