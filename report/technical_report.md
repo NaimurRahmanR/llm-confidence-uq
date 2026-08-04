@@ -1,6 +1,6 @@
 # Confidence Alignment and Uncertainty Quantification in LLMs Under Evidence Degradation
 
-**Technical report — version 0.1.0 (2026-08-04)**
+**Technical report — version 0.1.1 (2026-08-05)**
 
 ## Abstract
 
@@ -186,7 +186,8 @@ the manifest history.
 - **Error-detection AUROC** measures whether `1-confidence` ranks errors
   above correct predictions; it does not select an operating threshold.
 - **Error-detection AUPRC** summarizes precision–recall ranking with errors
-  as the positive class and must be interpreted against the error prevalence.
+  as the positive class.
+  Error AUPRC should not be compared naively across models because each model has a different error prevalence.
 - **UQ-signal discrimination** evaluates predictive entropy, ensemble
   member variance and MI-style disagreement, and Laplace predictive variance
   and mutual information for both error ranking and original-versus-degraded
@@ -309,6 +310,10 @@ is lower.
 | Laplace predictive entropy | 0.6356 | 0.4373 | 0.5631 | 0.8609 |
 | Laplace posterior-predictive variance | 0.6200 | 0.4204 | 0.5712 | 0.8719 |
 | Laplace mutual information | 0.6083 | 0.4091 | 0.5725 | 0.8731 |
+
+**Any-degraded AUPRC baseline prevalence = 0.8333.** Degraded evidence is
+the positive class for five of the six condition rows per input.
+Error AUPRC should not be compared naively across models because each model has a different error prevalence.
 
 For binary predictions, predictive entropy is monotone in `1-confidence`,
 so it gives the same AUROC ordering as the earlier confidence-derived error

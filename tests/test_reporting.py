@@ -118,9 +118,16 @@ class ReportingContractTests(unittest.TestCase):
             "laplace_mutual_information",
         }.issubset(signals))
         report = self.text["report/technical_report.md"]
+        readme = self.text["README.md"]
         self.assertIn("Direct evaluation of uncertainty signals", report)
         self.assertIn("Any-degraded AUROC", report)
         self.assertIn("5/6 positive", report)
+        for rendered in (readme, report):
+            self.assertIn("Any-degraded AUPRC baseline prevalence = 0.8333", rendered)
+            self.assertIn(
+                "Error AUPRC should not be compared naively across models because each model has a different error prevalence.",
+                rendered,
+            )
 
     def test_stale_and_unsupported_claims_are_absent(self) -> None:
         combined = "\n".join(self.text.values())
@@ -157,7 +164,7 @@ class ReportingContractTests(unittest.TestCase):
     def test_citation_and_reproduction_metadata_parse(self) -> None:
         citation = self.text["CITATION.cff"]
         self.assertIn("cff-version: 1.2.0", citation)
-        self.assertIn('version: "0.1.0"', citation)
+        self.assertIn('version: "0.1.1"', citation)
         self.assertIn('repository-code: "https://github.com/NaimurRahmanR/llm-confidence-uq"', citation)
         self.assertIn('alias: "NaimurRahmanR"', citation)
         reproducibility = self.text["report/reproducibility.md"]

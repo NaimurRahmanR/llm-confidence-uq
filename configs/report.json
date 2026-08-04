@@ -4,8 +4,8 @@
   "release": {
     "title": "Confidence Alignment and Uncertainty Quantification in LLMs Under Evidence Degradation",
     "repository": "https://github.com/NaimurRahmanR/llm-confidence-uq",
-    "version": "0.1.0",
-    "release_date": "2026-08-04",
+    "version": "0.1.1",
+    "release_date": "2026-08-05",
     "author": {
       "given_names": "Naimur",
       "family_names": "Rahman",
@@ -83,16 +83,16 @@
     "laplace_metrics": {"path": "outputs/laplace_head/full/metrics.json", "sha256": "1ccf074a0886a96a373b440a085d0ab84be447a5638054b6e84422ba899a4b53"}
   },
   "outputs": {
-    "README.md": {"initial_sha256": "6d88965691efc084fccabf4c9145b57631c288930760bac41c18c52753b1df14"},
-    "report/technical_report.md": {"initial_sha256": "63797b1ec11fbf5e05f61946be36c20909d55b26ea86a33eb4588167612d606f"},
+    "README.md": {"initial_sha256": "0a717b0a199db9e99014fc824a2a16574b6a19adea186514894c26811e94a962"},
+    "report/technical_report.md": {"initial_sha256": "cf56cd0f085f69be22cb3c1b402d541d7dadfb9c3c9dae732dbe09b7bfcd7bd8"},
     "report/claim_boundaries.md": {"initial_sha256": "0efb06de35ce830720031dd382e6363d029e256a7b25ef0253251a66f6eda898"},
-    "report/reproducibility.md": {"initial_sha256": "f307a1ab91cc7acd09dbdc169927762e846fc0fb46648bee5db273ea68f2df6e"},
+    "report/reproducibility.md": {"initial_sha256": "9ca19ea8bebfdcc7c06c4231d9d1c9704217a210df74d4c2c78cf72f082c6523"},
     "CITATION.cff": {"initial_sha256": "86e9a774d4fec4958dac84e6f79c94d70b64160b048839bc9be97c725cce6c44"},
     "data/README.md": {"initial_sha256": "e0415e880d27da537d196423d75375c2c274e1794d991f599a2834f450e5ae6d"},
     "requirements.txt": {"initial_sha256": "2cabcc64a0e0086d9b72674636470d5fc78d79b9101beb1afe19e9b91448d69a"}
   },
   "publication": {
-    "output_directory": "outputs/release/documentation-v2",
+    "output_directory": "outputs/release/documentation-v3",
     "refuse_unapproved_overwrite": true,
     "publish_completion_marker_last": true,
     "figures_directory": "outputs/results/gate8/figures",
