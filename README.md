@@ -86,6 +86,10 @@ evidence perturbations, with paired bootstrap intervals clustered by input.
 | Laplace posterior-predictive variance | 0.6200 | 0.4204 | 0.5712 | 0.8719 |
 | Laplace mutual information | 0.6083 | 0.4091 | 0.5725 | 0.8731 |
 
+**Any-degraded AUPRC baseline prevalence = 0.8333.** Degraded evidence is
+the positive class for five of the six condition rows per input.
+Error AUPRC should not be compared naively across models because each model has a different error prevalence.
+
 Intervals for accuracy, NLL, Brier, ECE, and error AUROC differences use
 2,000 paired percentile bootstrap replicates over the 400 input IDs; all six
 conditions travel with each sampled input. Full comparison and condition
