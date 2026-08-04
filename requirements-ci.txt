@@ -1,0 +1,4 @@
+# CPU-only unit and contract test dependencies.
+numpy==2.0.2
+PyYAML==6.0.3
+transformers==5.13.1

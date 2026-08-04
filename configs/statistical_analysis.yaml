@@ -1,0 +1,49 @@
+schema_version: 1
+protocol_version: boolq-clustered-statistical-analysis-v1
+
+inputs:
+  evaluations:
+    baseline:
+      path: outputs/evaluation/baseline/evaluations.jsonl
+      sha256: 4a5989da8718ae2c1ed6ae5bc553c327827d0d1def8cece1c53cbe263010f34f
+    full_seed_1:
+      path: outputs/evaluation/full_seed_1/evaluations.jsonl
+      sha256: 57f6df2685aca0913cbbf88e536355b6a12212abdb069f3f700c6dafe3563aa0
+    full_seed_2:
+      path: outputs/evaluation/full_seed_2/evaluations.jsonl
+      sha256: b0e3aabb436b69a7604333bf6464dc826515e1dd571aa77d6bae04b94caf65c5
+    full_seed_3:
+      path: outputs/evaluation/full_seed_3/evaluations.jsonl
+      sha256: 8ab7d8040a1d49c9973f9ace7a5fdd9ce5c911a191347763f2148ab83f796932
+  ensemble:
+    path: outputs/ensemble/three_lora/ensemble_predictions.jsonl
+    sha256: 42fb302293404f8f4dbccd1db99a0557468057222bc8212d84f58f32510f2528
+  laplace_head:
+    path: outputs/laplace_head/full/predictions.jsonl
+    sha256: 4e792d446a19822dd4513458449e7a0f2cec5eb95b39c34ae37bd55e3fc4fafc
+
+bootstrap:
+  cluster_unit: input_id
+  clusters: 400
+  repetitions: 2000
+  seed: 20260804
+  confidence_level: 0.95
+  interval_method: paired-cluster-percentile
+  numpy_bit_generator: PCG64
+
+metrics:
+  ece_bins: 10
+  nll_epsilon: 1.0e-12
+  auprc_definition: threshold-grouped-average-precision
+  higher_uq_score_means: more_uncertain
+
+claim_boundaries:
+  intervals_are_clustered_by_input_id: true
+  all_six_conditions_travel_with_each_cluster: true
+  bootstrap_is_post_hoc_descriptive: true
+  ensemble_mi_style_is_exact_bayesian_mi: false
+  laplace_scope: binary-linear-head-over-frozen-representations
+  any_degraded_auprc_has_positive_prevalence_5_over_6: true
+
+output:
+  directory: outputs/results/statistical_analysis
